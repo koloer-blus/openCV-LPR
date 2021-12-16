@@ -1,10 +1,29 @@
 # python-opencv
 
-#### 用python3+opencv3做的中国车牌识别，包括算法和客户端界面，只有2个文件，surface.py是界面代码，predict.py是算法代码，界面不是重点所以用tkinter写得很简单。
+> 用python3+opencv3做的车牌识别，包括算法和客户端界面
+> 
+> `surface.py`是界面代码
+> 
+> `predict.py`是算法代码(`tkinter`)。
 
-### 使用方法：
-版本：python3.4.4，opencv3.4和numpy1.14和PIL5<br>
-下载源码，并安装python、numpy、opencv的python版、PIL，运行surface.py即可
+## 使用方法：
 
-### 算法实现：
-算法思想来自于网上资源，先使用图像边缘和车牌颜色定位车牌，再识别字符。车牌定位在predict方法中，为说明清楚，完成代码和测试后，加了很多注释，请参看源码。车牌字符识别也在predict方法中，请参看源码中的注释，需要说明的是，车牌字符识别使用的算法是opencv的SVM， opencv的SVM使用代码来自于opencv附带的sample，StatModel类和SVM类都是sample中的代码。SVM训练使用的训练样本来自于github上的EasyPR的c++版本。由于训练样本有限，你测试时会发现，车牌字符识别，可能存在误差，尤其是第一个中文字符出现的误差概率较大。源码中，我上传了EasyPR中的训练样本，在train\目录下，如果要重新训练请解压在当前目录下，并删除原始训练数据文件svm.dat和svmchinese.dat。
+>版本：`python3.10.1，opencv3.4和numpy1.14和PIL5<br>
+
+1. 确保本机已经安装`python3.x`
+2. 执行`install.sh`来安装对应的依赖
+3. 执行成功后可以直接执行`run.sh` 或者 `python ./surface.py`
+
+
+## 算法实现：
+
+1. 先使用图像边缘和车牌颜色定位车牌
+2. 识别字符
+3. 车牌定位在predict方法中
+   1. 车牌字符识别使用的算法是opencv的SVM
+   2. opencv的SVM使用代码来自于opencv附带的sample
+   3. StatModel类和SVM类都是sample中的代码
+4. SVM训练使用的训练样本来自于github上的EasyPR的c++版本。
+5. 由于训练样本有限
+6. 上传了EasyPR中的训练样本，在`train\`目录下
+7. 如果要重新训练请解压在当前目录下，并删除原始训练数据文件`svm.dat`和`svmchinese.dat`。
