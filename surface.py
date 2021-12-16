@@ -74,7 +74,7 @@ class Surface(ttk.Frame):
             self.imgtk_roi = ImageTk.PhotoImage(image=roi)
             self.roi_ctl.configure(image=self.imgtk_roi, state='enable')
 
-            self.r_ctl.configure(text=str(r))
+            self.r_ctl.configure(text="".join(r))
             self.update_time = time.time()
             try:
                 c = self.color_transform[color]
