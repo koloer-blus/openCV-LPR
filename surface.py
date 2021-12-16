@@ -10,52 +10,100 @@ import time
 
 class Surface(ttk.Frame):
     pic_path = ""
-    viewhigh = 600
-    viewwide = 600
+    view_height = 400
+    view_width = 400
     update_time = 0
     thread = None
     thread_run = False
     camera = None
     color_transform = {"green": ("绿牌", "#55FF55"), "yello": ("黄牌", "#FFFF00"), "blue": ("蓝牌", "#6666FF")}
 
+    # 初始化
     def __init__(self, win):
         ttk.Frame.__init__(self, win)
-        frame_left = ttk.Frame(self)
-        frame_right1 = ttk.Frame(self)
-        frame_right2 = ttk.Frame(self)
-        win.title("基于python opencv的车牌识别")
-        win.state("zoomed")
-        self.pack(fill=tk.BOTH, expand=tk.YES, padx="5", pady="5")
-        frame_left.pack(side=tk.LEFT, expand=1, fill=tk.BOTH)
-        frame_right1.pack(side=tk.TOP, expand=1, fill=tk.Y)
-        frame_right2.pack(side=tk.RIGHT, expand=0)
-        ttk.Label(frame_left, text='原图：').pack(anchor="nw")
-        ttk.Label(frame_right1, text='车牌位置：').grid(column=0, row=0, sticky=tk.W)
+        img_area = ttk.Frame(self)
+        analysis_img_info = ttk.Frame(self)
+        analysis_res_data = ttk.Frame(self)
+        # 设置Header
+        header_label = tk.Label(
+            win,
+            text='基于OpenCV的SVM算法实现的车牌识别',
+            bg='#0088FF',
+            font=('Arial', 16),
+            fg="#fff", height=2
+        )
+        header_label.pack()
 
-        from_pic_ctl = ttk.Button(frame_right2, text="选择图片", width=20, command=self.from_pic)
-        self.image_ctl = ttk.Label(frame_left)
+        win.title("OpenCV LPR")
+        win.state("zoomed")
+
+        self.pack(fill=tk.BOTH, expand=tk.YES, padx="5", pady="5")
+        img_area.pack(side=tk.LEFT, expand=1, fill=tk.BOTH)
+        analysis_img_info.pack(side=tk.TOP, expand=1, fill=tk.Y)
+        analysis_res_data.pack(side=tk.RIGHT, expand=0)
+
+        tk.Label(
+            img_area,
+            text='需要进行车牌提取的图片：',
+            font=('Arial', 16),
+        ).pack(anchor="nw")
+
+        tk.Label(
+            analysis_img_info,
+            text='车牌截取图片：',
+            font=('Arial', 16),
+        ).grid(column=0, row=0, sticky=tk.W)
+
+        from_pic_ctl = tk.Button(
+            analysis_res_data,
+            text="选择图片",
+            width=20,
+            height=2,
+            activebackground="#fff",
+            activeforeground="#0088FF",
+            font=('Arial', 16),
+            bg="#fff",
+            command=self.from_pic
+        )
+        self.image_ctl = ttk.Label(img_area)
         self.image_ctl.pack(anchor="nw")
 
-        self.roi_ctl = ttk.Label(frame_right1)
+        self.roi_ctl = ttk.Label(analysis_img_info)
         self.roi_ctl.grid(column=0, row=1, sticky=tk.W)
-        ttk.Label(frame_right1, text='识别结果：').grid(column=0, row=2, sticky=tk.W)
-        self.r_ctl = ttk.Label(frame_right1, text="")
-        self.r_ctl.grid(column=0, row=3, sticky=tk.W)
-        self.color_ctl = ttk.Label(frame_right1, text="", width="20")
-        self.color_ctl.grid(column=0, row=4, sticky=tk.W)
+
+        ttk.Label(
+            analysis_img_info,
+            text='识别结果：',
+            font=('Arial', 16),
+        ).grid(column=0, row=8, sticky=tk.W)
+
+        self.r_ctl = ttk.Label(
+            analysis_img_info,
+            font=('Arial', 16),
+            text=""
+        )
+        self.r_ctl.grid(column=0, row=12, sticky=tk.W)
+
+        self.color_ctl = ttk.Label(
+            analysis_img_info,
+            text="",
+            font=('Arial', 16),
+            width="20",
+        )
+        self.color_ctl.grid(column=0, row=16, sticky=tk.W)
         from_pic_ctl.pack(anchor="se", pady="5")
         self.predictor = predict.CardPredictor()
         self.predictor.train_svm()
-
+    # 图片展示
     def get_imgtk(self, img_bgr):
         img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         im = Image.fromarray(img)
         imgtk = ImageTk.PhotoImage(image=im)
         wide = imgtk.width()
         high = imgtk.height()
-        if wide > self.viewwide or high > self.viewhigh:
-            wide_factor = self.viewwide / wide
-            high_factor = self.viewhigh / high
+        if wide > self.view_width or high > self.view_height:
+            wide_factor = self.view_width / wide
+            high_factor = self.view_height / high
             factor = min(wide_factor, high_factor)
 
             wide = int(wide * factor)
@@ -74,8 +122,11 @@ class Surface(ttk.Frame):
             self.imgtk_roi = ImageTk.PhotoImage(image=roi)
             self.roi_ctl.configure(image=self.imgtk_roi, state='enable')
 
+            # 控制车牌号的展示
             self.r_ctl.configure(text="".join(r))
             self.update_time = time.time()
+
+            # 控制结果展示以及背景色控制
             try:
                 c = self.color_transform[color]
                 self.color_ctl.configure(text=c[0], background=c[1], state='enable')
@@ -86,6 +137,7 @@ class Surface(ttk.Frame):
             self.r_ctl.configure(text="")
             self.color_ctl.configure(state='disabled')
 
+    # 选择图片
     def from_pic(self):
         self.thread_run = False
         self.pic_path = askopenfilename(title="选择识别图片", filetypes=[("jpg图片", "*.jpg")])
