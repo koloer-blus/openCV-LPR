@@ -5,11 +5,12 @@ import sys
 import os
 import json
 
-SZ = 20          #训练图片长宽
-MAX_WIDTH = 1000 #原始图片最大宽度
-Min_Area = 2000  #车牌区域允许最大面积
+SZ = 20          # 训练图片长宽
+MAX_WIDTH = 1000 # 原始图片最大宽度
+Min_Area = 2000  # 车牌区域允许最大面积
 PROVINCE_START = 1000
-#读取图片文件
+
+# 读取图片文件
 def imreadex(filename):
 	return cv2.imdecode(np.fromfile(filename, dtype=np.uint8), cv2.IMREAD_COLOR)
 	
@@ -19,9 +20,9 @@ def point_limit(point):
 	if point[1] < 0:
 		point[1] = 0
 
-#根据设定的阈值和图片直方图，找出波峰，用于分隔字符
+# 根据设定的阈值和图片直方图，找出波峰，用于分隔字符
 def find_waves(threshold, histogram):
-	up_point = -1#上升点
+	up_point = -1# 上升点
 	is_peak = False
 	if histogram[0] > threshold:
 		up_point = 0
@@ -39,14 +40,14 @@ def find_waves(threshold, histogram):
 		wave_peaks.append((up_point, i))
 	return wave_peaks
 
-#根据找出的波峰，分隔图片，从而得到逐个字符图片
+# 根据找出的波峰，分隔图片，从而得到逐个字符图片
 def seperate_card(img, waves):
 	part_cards = []
 	for wave in waves:
 		part_cards.append(img[:, wave[0]:wave[1]])
 	return part_cards
 
-#来自opencv的sample，用于svm训练
+# 来自opencv的sample，用于svm训练
 def deskew(img):
 	m = cv2.moments(img)
 	if abs(m['mu02']) < 1e-2:
@@ -55,7 +56,7 @@ def deskew(img):
 	M = np.float32([[1, skew, -0.5*SZ*skew], [0, 1, 0]])
 	img = cv2.warpAffine(img, M, (SZ, SZ), flags=cv2.WARP_INVERSE_MAP | cv2.INTER_LINEAR)
 	return img
-#来自opencv的sample，用于svm训练
+# 来自opencv的sample，用于svm训练
 def preprocess_hog(digits):
 	samples = []
 	for img in digits:
@@ -77,7 +78,7 @@ def preprocess_hog(digits):
 		
 		samples.append(hist)
 	return np.float32(samples)
-#不能保证包括所有省份
+# 省份信息
 provinces = [
 "zh_cuan", "川",
 "zh_e", "鄂",
@@ -123,17 +124,17 @@ class SVM(StatModel):
 		self.model.setC(C)
 		self.model.setKernel(cv2.ml.SVM_RBF)
 		self.model.setType(cv2.ml.SVM_C_SVC)
-#训练svm
+# 训练svm
 	def train(self, samples, responses):
 		self.model.train(samples, cv2.ml.ROW_SAMPLE, responses)
-#字符识别
+# 字符识别
 	def predict(self, samples):
 		r = self.model.predict(samples)
 		return r[1].ravel()
 
 class CardPredictor:
 	def __init__(self):
-		#车牌识别的部分参数保存在js中，便于根据图片分辨率做调整
+		# 车牌识别的部分参数保存在js中，便于根据图片分辨率做调整
 		f = open('config.js')
 		j = json.load(f)
 		for c in j["config"]:
@@ -146,9 +147,9 @@ class CardPredictor:
 	def __del__(self):
 		self.save_traindata()
 	def train_svm(self):
-		#识别英文字母和数字
+		# 识别英文字母和数字
 		self.model = SVM(C=1, gamma=0.5)
-		#识别中文
+		# 识别中文
 		self.modelchinese = SVM(C=1, gamma=0.5)
 		if os.path.exists("svm.dat"):
 			self.model.load("svm.dat")
@@ -165,12 +166,12 @@ class CardPredictor:
 					digit_img = cv2.imread(filepath)
 					digit_img = cv2.cvtColor(digit_img, cv2.COLOR_BGR2GRAY)
 					chars_train.append(digit_img)
-					#chars_label.append(1)
+					# chars_label.append(1)
 					chars_label.append(root_int)
 			
 			chars_train = list(map(deskew, chars_train))
 			chars_train = preprocess_hog(chars_train)
-			#chars_train = chars_train.reshape(-1, 20, 20).astype(np.float32)
+			# chars_train = chars_train.reshape(-1, 20, 20).astype(np.float32)
 			chars_label = np.array(chars_label)
 			self.model.train(chars_train, chars_label)
 		if os.path.exists("svmchinese.dat"):
@@ -182,17 +183,17 @@ class CardPredictor:
 				if not os.path.basename(root).startswith("zh_"):
 					continue
 				pinyin = os.path.basename(root)
-				index = provinces.index(pinyin) + PROVINCE_START + 1 #1是拼音对应的汉字
+				index = provinces.index(pinyin) + PROVINCE_START + 1 #1 是拼音对应的汉字
 				for filename in files:
 					filepath = os.path.join(root,filename)
 					digit_img = cv2.imread(filepath)
 					digit_img = cv2.cvtColor(digit_img, cv2.COLOR_BGR2GRAY)
 					chars_train.append(digit_img)
-					#chars_label.append(1)
+					# chars_label.append(1)
 					chars_label.append(index)
 			chars_train = list(map(deskew, chars_train))
 			chars_train = preprocess_hog(chars_train)
-			#chars_train = chars_train.reshape(-1, 20, 20).astype(np.float32)
+			# chars_train = chars_train.reshape(-1, 20, 20).astype(np.float32)
 			chars_label = np.array(chars_label)
 			print(chars_train.shape)
 			self.modelchinese.train(chars_train, chars_label)
@@ -209,7 +210,7 @@ class CardPredictor:
 		xr = 0
 		yh = 0
 		yl = row_num
-		#col_num_limit = self.cfg["col_num_limit"]
+		# col_num_limit = self.cfg["col_num_limit"]
 		row_num_limit = self.cfg["row_num_limit"]
 		col_num_limit = col_num * 0.8 if color != "green" else col_num * 0.5#绿色有渐变
 		for i in range(row_num):
@@ -268,22 +269,22 @@ class CardPredictor:
 		img_opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
 		img_opening = cv2.addWeighted(img, 1, img_opening, -1, 0);
 
-		#找到图像边缘
+		# 找到图像边缘
 		ret, img_thresh = cv2.threshold(img_opening, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 		img_edge = cv2.Canny(img_thresh, 100, 200)
-		#使用开运算和闭运算让图像边缘成为一个整体
+		# 使用开运算和闭运算让图像边缘成为一个整体
 		kernel = np.ones((self.cfg["morphologyr"], self.cfg["morphologyc"]), np.uint8)
 		img_edge1 = cv2.morphologyEx(img_edge, cv2.MORPH_CLOSE, kernel)
 		img_edge2 = cv2.morphologyEx(img_edge1, cv2.MORPH_OPEN, kernel)
 
-		#查找图像边缘整体形成的矩形区域，可能有很多，车牌就在其中一个矩形区域中
+		# 查找图像边缘整体形成的矩形区域，可能有很多，车牌就在其中一个矩形区域中
 		try:
 			contours, hierarchy = cv2.findContours(img_edge2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		except ValueError:
 			image, contours, hierarchy = cv2.findContours(img_edge2, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		contours = [cnt for cnt in contours if cv2.contourArea(cnt) > Min_Area]
 		print('len(contours)', len(contours))
-		#一一排除不是车牌的矩形区域
+		# 一一排除不是车牌的矩形区域
 		car_contours = []
 		for cnt in contours:
 			rect = cv2.minAreaRect(cnt)
@@ -291,27 +292,27 @@ class CardPredictor:
 			if area_width < area_height:
 				area_width, area_height = area_height, area_width
 			wh_ratio = area_width / area_height
-			#print(wh_ratio)
-			#要求矩形区域长宽比在2到5.5之间，2到5.5是车牌的长宽比，其余的矩形排除
+			# print(wh_ratio)
+			# 要求矩形区域长宽比在2到5.5之间，2到5.5是车牌的长宽比，其余的矩形排除
 			if wh_ratio > 2 and wh_ratio < 5.5:
 				car_contours.append(rect)
 				box = cv2.boxPoints(rect)
 				box = np.int0(box)
-				#oldimg = cv2.drawContours(oldimg, [box], 0, (0, 0, 255), 2)
-				#cv2.imshow("edge4", oldimg)
-				#cv2.waitKey(0)
+				# oldimg = cv2.drawContours(oldimg, [box], 0, (0, 0, 255), 2)
+				# cv2.imshow("edge4", oldimg)
+				#  cv2.waitKey(0)
 
 		print(len(car_contours))
 
 		print("精确定位")
 		card_imgs = []
-		#矩形区域可能是倾斜的矩形，需要矫正，以便使用颜色定位
+		# 矩形区域可能是倾斜的矩形，需要矫正，以便使用颜色定位
 		for rect in car_contours:
-			if rect[2] > -1 and rect[2] < 1:#创造角度，使得左、高、右、低拿到正确的值
+			if rect[2] > -1 and rect[2] < 1:# 创造角度，使得左、高、右、低拿到正确的值
 				angle = 1
 			else:
 				angle = rect[2]
-			rect = (rect[0], (rect[1][0]+5, rect[1][1]+5), angle)#扩大范围，避免车牌边缘被排除
+			rect = (rect[0], (rect[1][0]+5, rect[1][1]+5), angle)# 扩大范围，避免车牌边缘被排除
 
 			box = cv2.boxPoints(rect)
 			heigth_point = right_point = [0, 0]
