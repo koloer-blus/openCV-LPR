@@ -8,7 +8,7 @@
 
 ## 使用方法：
 
->版本：`python3.10.1，opencv3.4和numpy1.14和PIL5<br>
+>版本：`python3.10.1`，`opencv3.4`和`numpy1.14`和`PIL5`<br>
 
 1. 确保本机已经安装`python3.x`以及`pip`
 
