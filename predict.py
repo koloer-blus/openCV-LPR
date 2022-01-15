@@ -209,6 +209,7 @@ class CardPredictor:
 		xl = col_num
 		xr = 0
 		yh = 0
+
 		yl = row_num
 		# col_num_limit = self.cfg["col_num_limit"]
 		row_num_limit = self.cfg["row_num_limit"]
@@ -262,8 +263,6 @@ class CardPredictor:
 			img = cv2.GaussianBlur(img, (blur, blur), 0)#图片分辨率调整
 		oldimg = img
 		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-		#equ = cv2.equalizeHist(img)
-		#img = np.hstack((img, equ))
 		#去掉图像中不会是车牌的区域
 		kernel = np.ones((20, 20), np.uint8)
 		img_opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
@@ -511,14 +510,9 @@ class CardPredictor:
 						print("a point")
 						continue
 					part_card_old = part_card
-					#w = abs(part_card.shape[1] - SZ)//2
 					w = part_card.shape[1] // 3
 					part_card = cv2.copyMakeBorder(part_card, 0, 0, w, w, cv2.BORDER_CONSTANT, value = [0,0,0])
 					part_card = cv2.resize(part_card, (SZ, SZ), interpolation=cv2.INTER_AREA)
-					#cv2.imshow("part", part_card_old)
-					#cv2.waitKey(0)
-					#cv2.imwrite("u.jpg", part_card)
-					#part_card = deskew(part_card)
 					part_card = preprocess_hog([part_card])
 					if i == 0:
 						resp = self.modelchinese.predict(part_card)
