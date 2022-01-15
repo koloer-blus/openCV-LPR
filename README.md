@@ -1,4 +1,4 @@
-# python-opencv
+# python-opencv(车牌识别)
 
 > 用python3+opencv3做的车牌识别，包括算法和客户端界面
 > 
